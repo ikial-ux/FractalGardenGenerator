@@ -1,79 +1,91 @@
 import turtle
 
-screen = turtle.Screen()
-screen.setup(width=600, height=600)
-screen.bgcolor("navy")
-
-flower = turtle.Turtle()
-flower.speed(0)
-flower.color("orchid")
-flower.pensize(2)
-
-# Start position at bottom center
-flower.penup()
-flower.goto(0, -250)
-flower.setheading(90)
-flower.pendown()
-
-# Draw simple stem
-flower.forward(100)
-flower.penup()
-flower.forward(40)
-flower.pendown()
-
 def apply_rules(axiom, rules, iterations):
+    """Expand the L-system axiom using production rules"""
     for _ in range(iterations):
         axiom = "".join(rules.get(char, char) for char in axiom)
     return axiom
 
-def draw_l_system(axiom, angle, distance):
+def draw_l_system(turtle, axiom, angle, distance, max_steps=10000):
+    """Draw the L-system with termination safety"""
     stack = []
+    step_count = 0
+    
     for char in axiom:
+        if step_count >= max_steps:
+            print("Safety limit reached!")
+            break
+            
         if char == "F":
-            flower.forward(distance)
+            turtle.forward(distance)
         elif char == "+":
-            flower.right(angle + 5)  # Add variation to break symmetry
+            turtle.right(angle * 1.1)  # Introduce 10% asymmetry
         elif char == "-":
-            flower.left(angle - 5)  # Asymmetric angle modification
+            turtle.left(angle * 0.9)   # Different asymmetry factor
         elif char == "[":
-            stack.append((flower.position(), flower.heading()))
-            flower.pensize(max(1, flower.pensize() * 0.7))  # Reduce thickness
+            stack.append((turtle.position(), turtle.heading()))
+            turtle.pensize(max(1, turtle.pensize() * 0.8))
         elif char == "]":
-            flower.pensize(flower.pensize() / 0.7)
+            turtle.pensize(turtle.pensize() / 0.8)
             pos, head = stack.pop()
-            flower.penup()
-            flower.goto(pos)
-            flower.setheading(head)
-            flower.pendown()
+            turtle.penup()
+            turtle.goto(pos)
+            turtle.setheading(head)
+            turtle.pendown()
+            
+        step_count += 1
+        
+        # Progress tracking
+        if step_count % 500 == 0:
+            print(f"Step {step_count} completed")
 
-# Modified L-system rules for twisted petals
-axiom = "F"
-rules = {
-    "F": "F[+FF][-F+F]",  # Asymmetric branching pattern
-    "+": "+",
-    "-": "-",
-    "[": "[",
-    "]": "]"
+    return step_count
+
+# Main program
+screen = turtle.Screen()
+screen.setup(800, 800)
+screen.bgcolor("midnightblue")
+
+flora = turtle.Turtle()
+flora.speed(0)
+flora.color("crimson")
+flora.pensize(3)
+
+# Initial positioning
+flora.penup()
+flora.goto(0, -300)
+flora.setheading(90)
+flora.pendown()
+
+# Draw stem
+flora.forward(150)
+
+# Flower configuration
+config = {
+    "axiom": "F",
+    "rules": {"F": "F[+F[+F]-F]F[-F]+F"},  # Asymmetric branching
+    "iterations": 4,
+    "base_angle": 45,
+    "base_distance": 150
 }
-iterations = 4
-angle = 50  # Non-divisor of 360 to prevent perfect circles
-final_axiom = apply_rules(axiom, rules, iterations)
 
-# Dynamic scaling with twist factor
-base_distance = 80
-distance = base_distance / (1.3 ** iterations)
+# Generate L-system string
+final_axiom = apply_rules(config["axiom"], config["rules"], config["iterations"])
 
-# Draw the twisted flower
-draw_l_system(final_axiom, angle, distance)
+# Calculate dynamic parameters
+distance = config["base_distance"] / (1.6 ** config["iterations"])
+angle = config["base_angle"] + 2 * config["iterations"]  # Angle increases with iterations
 
-# Add spiral center
-flower.penup()
-flower.goto(0, -110)
-flower.color("gold")
-for _ in range(20):
-    flower.forward(5)
-    flower.right(30)
-    flower.stamp()
+# Draw the flower
+print(f"Starting drawing with {len(final_axiom)} commands...")
+completed_steps = draw_l_system(flora, final_axiom, angle, distance)
 
-flower.hideturtle()
+# Final touch
+flora.penup()
+flora.goto(0, -120)
+flora.color("gold")
+flora.dot(25)
+
+print(f"Drawing complete! Total steps: {completed_steps}")
+flora.hideturtle()
 turtle.done()
